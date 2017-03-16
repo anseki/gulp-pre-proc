@@ -1,0 +1,34 @@
+{
+  "name": "gulp-pre-proc",
+  "version": "1.0.0",
+  "title": "gulp-pre-proc",
+  "description": "The super simple preprocessor for front-end development.",
+  "keywords": [
+    "gulpplugin",
+    "preprocessor",
+    "preprocess",
+    "front-end",
+    "javascript",
+    "css",
+    "html"
+  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "dependencies": {
+    "gulp-util": "^3.0.0",
+    "through2": "^0.6.1",
+    "pre-proc": "~0.2.0"
+  },
+  "homepage": "https://github.com/anseki/gulp-pre-proc",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/anseki/gulp-pre-proc.git"
+  },
+  "bugs": "https://github.com/anseki/gulp-pre-proc/issues",
+  "license": "MIT",
+  "author": {
+    "name": "anseki",
+    "url": "https://github.com/anseki"
+  }
+}
