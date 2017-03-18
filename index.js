@@ -36,7 +36,8 @@ module.exports = function(options) {
         content, pathTest ? srcPath : null, pathTest);
     }
 
-    file.contents = Buffer.from ? Buffer.from(content) : new Buffer(content);
+    // Check `allocUnsafe` to make sure of the new API.
+    file.contents = Buffer.allocUnsafe && Buffer.from ? Buffer.from(content) : new Buffer(content);
     callback(null, file);
   });
 };
