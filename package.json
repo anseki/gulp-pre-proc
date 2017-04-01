@@ -18,7 +18,7 @@
   "dependencies": {
     "gulp-util": "^3.0.8",
     "through2": "^2.0.3",
-    "pre-proc": "~0.2.4"
+    "pre-proc": "~0.2.6"
   },
   "homepage": "https://github.com/anseki/gulp-pre-proc",
   "repository": {
