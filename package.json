@@ -1,6 +1,6 @@
 {
   "name": "gulp-pre-proc",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "title": "gulp-pre-proc",
   "description": "The super simple preprocessor for front-end development.",
   "keywords": [
@@ -18,7 +18,7 @@
   "dependencies": {
     "gulp-util": "^3.0.8",
     "through2": "^2.0.3",
-    "pre-proc": "~0.2.6"
+    "pre-proc": "~0.2.7"
   },
   "homepage": "https://github.com/anseki/gulp-pre-proc",
   "repository": {
