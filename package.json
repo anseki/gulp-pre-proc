@@ -12,6 +12,10 @@
     "css",
     "html"
   ],
+  "files": [
+    "index.js",
+    "LICENSE-MIT"
+  ],
   "engines": {
     "node": ">= 0.8.0"
   },
