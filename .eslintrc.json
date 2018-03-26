@@ -1,10 +1,5 @@
 {
   "root": true,
   "extends": "../../../../_common/eslintrc.json",
-  "env": {"node": true},
-  "rules": {
-    "consistent-return": "off",
-    "no-var": "off",
-    "prefer-arrow-callback": "off"
-  }
+  "env": {"node": true}
 }
