@@ -1,16 +1,19 @@
 'use strict';
 
 let pickTagRturnsNull;
-const proxyquire = require('proxyquire').noPreserveCache(),
+const expect = require('chai').expect,
   sinon = require('sinon'),
+  File = require('vinyl'),
+  proxyquire = require('proxyquire').noPreserveCache(),
   preProc = {
     replaceTag: sinon.spy((tag, replacement, content) => `${content}<replaceTag>`),
     removeTag: sinon.spy((tag, content) => `${content}<removeTag>`),
     pickTag: sinon.spy((tag, content) => (pickTagRturnsNull ? null : `${content}<pickTag>`))
   },
-  plugin = proxyquire('../', {'pre-proc': preProc}),
-  expect = require('chai').expect,
-  File = require('vinyl');
+  plugin = proxyquire('../', {
+    'pre-proc': preProc,
+    'fancy-log': {error: () => {}, warn: () => {}, info: () => {}, dir: () => {}}
+  });
 
 function resetAll() {
   preProc.replaceTag.resetHistory();
