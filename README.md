@@ -76,8 +76,7 @@ Following arguments are accepted:
 
 - `tag`
 - `pathTest`
-
-And the `options.replaceTag.replacement` also is accepted. (Not `options.replacement`)
+- `replacement` (As `options.replaceTag.replacement`, not `options.replacement`)
 
 ### `pickTag`
 
@@ -87,3 +86,7 @@ You can specify arguments by the same way as the [`removeTag`](#removetag).
 Following argument is accepted:
 
 - `tag`
+- `allowErrors` (As `options.pickTag.allowErrors`, not `options.allowErrors`)
+
+When the tag was not found, this method throws an error by default. If `true` is specified for `allowErrors`, it returns `null` (not a string) without error. It is useful for handling unknown source code. (You should check that by `file.isNull()`.)  
+Also, you can specify options to call multiple methods, and other methods are not called when the tag was not found.
