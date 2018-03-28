@@ -154,8 +154,7 @@ describe('pickTag()', () => {
         pluginStream.once('data', () => {
           expect(preProc.replaceTag.notCalled).to.be.true;
           expect(preProc.removeTag.notCalled).to.be.true;
-          expect(preProc.pickTag.calledOnce).to.be.true;
-          expect(preProc.pickTag.calledWithExactly(test.expectedTag, 'content')).to.be.true;
+          expect(preProc.pickTag.calledOnceWithExactly(test.expectedTag, 'content')).to.be.true;
 
           done();
         });
@@ -193,11 +192,10 @@ describe('replaceTag()', () => {
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content'));
         pluginStream.once('data', () => {
-          expect(preProc.replaceTag.calledOnce).to.be.true;
+          expect(preProc.replaceTag.calledOnceWithExactly(test.expectedTag,
+            'replacement', 'content', null, void 0)).to.be.true;
           expect(preProc.removeTag.notCalled).to.be.true;
           expect(preProc.pickTag.notCalled).to.be.true;
-          expect(preProc.replaceTag.calledWithExactly(test.expectedTag,
-            'replacement', 'content', null, void 0)).to.be.true;
 
           done();
         });
@@ -232,11 +230,10 @@ describe('replaceTag()', () => {
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content', 'SRCPATH'));
         pluginStream.once('data', () => {
-          expect(preProc.replaceTag.calledOnce).to.be.true;
+          expect(preProc.replaceTag.calledOnceWithExactly('TAG', 'replacement', 'content',
+            test.expected.srcPath, test.expected.pathTest)).to.be.true;
           expect(preProc.removeTag.notCalled).to.be.true;
           expect(preProc.pickTag.notCalled).to.be.true;
-          expect(preProc.replaceTag.calledWithExactly('TAG', 'replacement', 'content',
-            test.expected.srcPath, test.expected.pathTest)).to.be.true;
 
           done();
         });
@@ -274,10 +271,9 @@ describe('removeTag()', () => {
         pluginStream.write(newFile('content'));
         pluginStream.once('data', () => {
           expect(preProc.replaceTag.notCalled).to.be.true;
-          expect(preProc.removeTag.calledOnce).to.be.true;
-          expect(preProc.pickTag.notCalled).to.be.true;
-          expect(preProc.removeTag.calledWithExactly(test.expectedTag,
+          expect(preProc.removeTag.calledOnceWithExactly(test.expectedTag,
             'content', null, void 0)).to.be.true;
+          expect(preProc.pickTag.notCalled).to.be.true;
 
           done();
         });
@@ -312,10 +308,9 @@ describe('removeTag()', () => {
         pluginStream.write(newFile('content', 'SRCPATH'));
         pluginStream.once('data', () => {
           expect(preProc.replaceTag.notCalled).to.be.true;
-          expect(preProc.removeTag.calledOnce).to.be.true;
-          expect(preProc.pickTag.notCalled).to.be.true;
-          expect(preProc.removeTag.calledWithExactly('TAG', 'content',
+          expect(preProc.removeTag.calledOnceWithExactly('TAG', 'content',
             test.expected.srcPath, test.expected.pathTest)).to.be.true;
+          expect(preProc.pickTag.notCalled).to.be.true;
 
           done();
         });
