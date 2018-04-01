@@ -6,9 +6,9 @@ const expect = require('chai').expect,
   File = require('vinyl'),
   proxyquire = require('proxyquire').noPreserveCache(),
   preProc = {
+    pickTag: sinon.spy((tag, content) => (pickTagRturnsNull ? null : `${content}<pickTag>`)),
     replaceTag: sinon.spy((tag, replacement, content) => `${content}<replaceTag>`),
-    removeTag: sinon.spy((tag, content) => `${content}<removeTag>`),
-    pickTag: sinon.spy((tag, content) => (pickTagRturnsNull ? null : `${content}<pickTag>`))
+    removeTag: sinon.spy((tag, content) => `${content}<removeTag>`)
   },
   plugin = proxyquire('../', {
     'pre-proc': preProc,
@@ -16,9 +16,9 @@ const expect = require('chai').expect,
   });
 
 function resetAll() {
+  preProc.pickTag.resetHistory();
   preProc.replaceTag.resetHistory();
   preProc.removeTag.resetHistory();
-  preProc.pickTag.resetHistory();
 }
 
 function newFile(content, path) {
@@ -29,51 +29,13 @@ function newFile(content, path) {
   });
 }
 
-describe('implements a basic flow as buffer based plugin', () => {
+describe('implements a basic flow as Buffer based plugin', () => {
+  const OPTS_REPLACETAG = {tag: 'TAG1'};
 
-  it('should skip process if contents is null', done => {
+  it('should accept contents from Buffer', done => {
+    pickTagRturnsNull = false;
     resetAll();
-    const pluginStream = plugin({replaceTag: {}}), // Dummy option
-      passedFile = new File();
-    expect(passedFile.isNull()).to.be.true;
-    expect(passedFile.isStream()).to.be.false;
-    expect(passedFile.isBuffer()).to.be.false;
-
-    pluginStream.write(passedFile);
-    pluginStream.once('data', file => {
-      expect(file.isNull()).to.be.true;
-      expect(file.isStream()).to.be.false;
-      expect(file.isBuffer()).to.be.false;
-      expect(preProc.replaceTag.notCalled).to.be.true;
-      expect(preProc.removeTag.notCalled).to.be.true;
-      expect(preProc.pickTag.notCalled).to.be.true;
-
-      done();
-    });
-  });
-
-  it('should throw an error if contents is a Stream', () => {
-    resetAll();
-    const stream = require('stream'),
-      es = require('event-stream'),
-      pluginStream = plugin({replaceTag: {}}), // Dummy option
-      passedFile = new File({
-        contents: new stream.Readable({objectMode: true})
-          .wrap(es.readArray(['stream', 'with', 'those', 'contents']))
-      });
-    expect(passedFile.isNull()).to.be.false;
-    expect(passedFile.isStream()).to.be.true;
-    expect(passedFile.isBuffer()).to.be.false;
-
-    expect(() => { pluginStream.write(passedFile); }).to.throw('Streaming not supported');
-    expect(preProc.replaceTag.notCalled).to.be.true;
-    expect(preProc.removeTag.notCalled).to.be.true;
-    expect(preProc.pickTag.notCalled).to.be.true;
-  });
-
-  it('should accept contents if it is a Buffer', done => {
-    resetAll();
-    const pluginStream = plugin({replaceTag: {}}),
+    const pluginStream = plugin({replaceTag: OPTS_REPLACETAG}),
       passedFile = newFile('content');
     expect(passedFile.isNull()).to.be.false;
     expect(passedFile.isStream()).to.be.false;
@@ -84,10 +46,51 @@ describe('implements a basic flow as buffer based plugin', () => {
       expect(file.isNull()).to.be.false;
       expect(file.isStream()).to.be.false;
       expect(file.isBuffer()).to.be.true;
-      expect(preProc.replaceTag.calledOnce).to.be.true;
-      expect(preProc.removeTag.notCalled).to.be.true;
       expect(preProc.pickTag.notCalled).to.be.true;
+      expect(preProc.replaceTag
+        .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, 'content', null, void 0)).to.be.true;
+      expect(preProc.removeTag.notCalled).to.be.true;
       expect(file.contents.toString()).to.equal('content<replaceTag>');
+
+      done();
+    });
+  });
+
+  it('should throw an error if a Stream is input', () => {
+    pickTagRturnsNull = false;
+    resetAll();
+    const pluginStream = plugin({replaceTag: OPTS_REPLACETAG}),
+      passedFile = new File({
+        contents: new (require('stream')).Readable({objectMode: true})
+          .wrap(require('event-stream').readArray(['stream', 'with', 'those', 'contents']))
+      });
+    expect(passedFile.isNull()).to.be.false;
+    expect(passedFile.isStream()).to.be.true;
+    expect(passedFile.isBuffer()).to.be.false;
+
+    expect(() => { pluginStream.write(passedFile); }).to.throw('Streaming not supported');
+    expect(preProc.pickTag.notCalled).to.be.true;
+    expect(preProc.replaceTag.notCalled).to.be.true;
+    expect(preProc.removeTag.notCalled).to.be.true;
+  });
+
+  it('should skip process if a null is input', done => {
+    pickTagRturnsNull = false;
+    resetAll();
+    const pluginStream = plugin({replaceTag: OPTS_REPLACETAG}),
+      passedFile = new File();
+    expect(passedFile.isNull()).to.be.true;
+    expect(passedFile.isStream()).to.be.false;
+    expect(passedFile.isBuffer()).to.be.false;
+
+    pluginStream.write(passedFile);
+    pluginStream.once('data', file => {
+      expect(file.isNull()).to.be.true;
+      expect(file.isStream()).to.be.false;
+      expect(file.isBuffer()).to.be.false;
+      expect(preProc.pickTag.notCalled).to.be.true;
+      expect(preProc.replaceTag.notCalled).to.be.true;
+      expect(preProc.removeTag.notCalled).to.be.true;
 
       done();
     });
@@ -96,28 +99,36 @@ describe('implements a basic flow as buffer based plugin', () => {
 });
 
 describe('when option for each method is passed', () => {
+  const OPTS_PICKTAG = {tag: 'TAG1'},
+    OPTS_REPLACETAG = {tag: 'TAG2'};
 
   it('should call only pickTag', done => {
+    pickTagRturnsNull = false;
     resetAll();
-    const pluginStream = plugin({pickTag: {}});
+    const pluginStream = plugin({pickTag: OPTS_PICKTAG});
     pluginStream.write(newFile('content'));
-    pluginStream.once('data', () => {
+    pluginStream.once('data', file => {
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, 'content')).to.be.true;
       expect(preProc.replaceTag.notCalled).to.be.true;
       expect(preProc.removeTag.notCalled).to.be.true;
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(file.contents.toString()).to.equal('content<pickTag>');
 
       done();
     });
   });
 
-  it('should call replaceTag and pickTag', done => {
+  it('should call pickTag and replaceTag', done => {
+    pickTagRturnsNull = false;
     resetAll();
-    const pluginStream = plugin({replaceTag: {}, pickTag: {}});
+    const pluginStream = plugin({pickTag: OPTS_PICKTAG, replaceTag: OPTS_REPLACETAG});
     pluginStream.write(newFile('content'));
-    pluginStream.once('data', () => {
-      expect(preProc.replaceTag.calledOnce).to.be.true;
+    pluginStream.once('data', file => {
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, 'content')).to.be.true;
+      expect(preProc.replaceTag
+        .calledOnceWithExactly(OPTS_REPLACETAG.tag, void 0, 'content<pickTag>', null, void 0))
+        .to.be.true;
       expect(preProc.removeTag.notCalled).to.be.true;
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(file.contents.toString()).to.equal('content<pickTag><replaceTag>');
 
       done();
     });
@@ -148,13 +159,14 @@ describe('pickTag()', () => {
     ].forEach(test => {
       it(`options.pickTag.tag: ${test.options.pickTag.tag || 'NONE'}` +
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content'));
         pluginStream.once('data', () => {
+          expect(preProc.pickTag.calledOnceWithExactly(test.expectedTag, 'content')).to.be.true;
           expect(preProc.replaceTag.notCalled).to.be.true;
           expect(preProc.removeTag.notCalled).to.be.true;
-          expect(preProc.pickTag.calledOnceWithExactly(test.expectedTag, 'content')).to.be.true;
 
           done();
         });
@@ -187,15 +199,17 @@ describe('replaceTag()', () => {
     ].forEach(test => {
       it(`options.replaceTag.tag: ${test.options.replaceTag.tag || 'NONE'}` +
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         test.options.replaceTag.replacement = 'replacement';
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content'));
         pluginStream.once('data', () => {
-          expect(preProc.replaceTag.calledOnceWithExactly(test.expectedTag,
-            'replacement', 'content', null, void 0)).to.be.true;
-          expect(preProc.removeTag.notCalled).to.be.true;
           expect(preProc.pickTag.notCalled).to.be.true;
+          expect(preProc.replaceTag
+            .calledOnceWithExactly(test.expectedTag, 'replacement', 'content', null, void 0))
+            .to.be.true;
+          expect(preProc.removeTag.notCalled).to.be.true;
 
           done();
         });
@@ -230,10 +244,11 @@ describe('replaceTag()', () => {
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content', 'SRCPATH'));
         pluginStream.once('data', () => {
-          expect(preProc.replaceTag.calledOnceWithExactly('TAG', 'replacement', 'content',
-            test.expected.srcPath, test.expected.pathTest)).to.be.true;
-          expect(preProc.removeTag.notCalled).to.be.true;
           expect(preProc.pickTag.notCalled).to.be.true;
+          expect(preProc.replaceTag
+            .calledOnceWithExactly('TAG', 'replacement', 'content',
+              test.expected.srcPath, test.expected.pathTest)).to.be.true;
+          expect(preProc.removeTag.notCalled).to.be.true;
 
           done();
         });
@@ -266,14 +281,15 @@ describe('removeTag()', () => {
     ].forEach(test => {
       it(`options.removeTag.tag: ${test.options.removeTag.tag || 'NONE'}` +
           ` / options.tag: ${test.options.tag || 'NONE'}`, done => {
+        pickTagRturnsNull = false;
         resetAll();
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content'));
         pluginStream.once('data', () => {
-          expect(preProc.replaceTag.notCalled).to.be.true;
-          expect(preProc.removeTag.calledOnceWithExactly(test.expectedTag,
-            'content', null, void 0)).to.be.true;
           expect(preProc.pickTag.notCalled).to.be.true;
+          expect(preProc.replaceTag.notCalled).to.be.true;
+          expect(preProc.removeTag
+            .calledOnceWithExactly(test.expectedTag, 'content', null, void 0)).to.be.true;
 
           done();
         });
@@ -307,10 +323,11 @@ describe('removeTag()', () => {
         const pluginStream = plugin(test.options);
         pluginStream.write(newFile('content', 'SRCPATH'));
         pluginStream.once('data', () => {
-          expect(preProc.replaceTag.notCalled).to.be.true;
-          expect(preProc.removeTag.calledOnceWithExactly('TAG', 'content',
-            test.expected.srcPath, test.expected.pathTest)).to.be.true;
           expect(preProc.pickTag.notCalled).to.be.true;
+          expect(preProc.replaceTag.notCalled).to.be.true;
+          expect(preProc.removeTag
+            .calledOnceWithExactly('TAG', 'content',
+              test.expected.srcPath, test.expected.pathTest)).to.be.true;
 
           done();
         });
@@ -321,63 +338,63 @@ describe('removeTag()', () => {
 });
 
 describe('passed/returned value', () => {
-  const OPTS_METHODS = {pickTag: {}, replaceTag: {}, removeTag: {}, tag: 'TAG1'},
-    R_METHODS = 'content<pickTag><replaceTag><removeTag>';
+  const OPTS_ALL = {pickTag: {}, replaceTag: {}, removeTag: {}, tag: 'TAG1'},
+    RES_ALL = 'content<pickTag><replaceTag><removeTag>';
 
   it('should return processed value by all required methods', done => {
     pickTagRturnsNull = false;
-
     resetAll();
-    const pluginStream = plugin(OPTS_METHODS);
+    const pluginStream = plugin(OPTS_ALL);
     pluginStream.write(newFile('content'));
     pluginStream.once('data', file => {
-      expect(file.contents.toString()).to.equal(R_METHODS);
-      expect(preProc.replaceTag.calledOnce).to.be.true;
-      expect(preProc.removeTag.calledOnce).to.be.true;
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, 'content')).to.be.true;
+      expect(preProc.replaceTag
+        .calledOnceWithExactly(OPTS_ALL.tag, void 0, 'content<pickTag>', null, void 0))
+        .to.be.true;
+      expect(preProc.removeTag
+        .calledOnceWithExactly(OPTS_ALL.tag, 'content<pickTag><replaceTag>', null, void 0))
+        .to.be.true;
+      expect(file.contents.toString()).to.equal(RES_ALL);
 
       done();
     });
   });
 
-  it('should return null when passed value is null', done => {
+  it('should return a null if a null is input', done => {
     pickTagRturnsNull = false;
-
     resetAll();
-    const pluginStream = plugin(OPTS_METHODS),
+    const pluginStream = plugin(OPTS_ALL),
       passedFile = new File();
     expect(passedFile.isNull()).to.be.true;
     pluginStream.write(passedFile);
     pluginStream.once('data', file => {
-      expect(file.isNull()).to.be.true;
+      expect(preProc.pickTag.notCalled).to.be.true;
       expect(preProc.replaceTag.notCalled).to.be.true;
       expect(preProc.removeTag.notCalled).to.be.true;
-      expect(preProc.pickTag.notCalled).to.be.true;
+      expect(file.isNull()).to.be.true;
 
       done();
     });
   });
 
-  it('should throw an error if pickTag returned null', done => {
+  it('should throw an error if pickTag returned a null', done => {
     const OPTS_PICKTAG = {pickTag: {}, tag: 'TAG1'},
-      R_PICKTAG = 'content<pickTag>',
       ERR_MSG = `Not found tag: ${OPTS_PICKTAG.tag}`;
-    pickTagRturnsNull = false;
 
+    pickTagRturnsNull = false;
     resetAll();
     let pluginStream = plugin(OPTS_PICKTAG);
     pluginStream.write(newFile('content'));
     pluginStream.once('data', file => {
-      expect(file.contents.toString()).to.equal(R_PICKTAG);
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, 'content')).to.be.true;
+      expect(file.contents.toString()).to.equal('content<pickTag>');
 
       // Returns null
       pickTagRturnsNull = true;
-
       resetAll();
       pluginStream = plugin(OPTS_PICKTAG);
       expect(() => { pluginStream.write(newFile('content')); }).to.throw(ERR_MSG);
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, 'content')).to.be.true;
 
       done();
     });
@@ -389,8 +406,8 @@ describe('passed/returned value', () => {
       OPTS2 = {tag: 'TAG1', pickTag: {allowErrors: false}},
       OPTS3 = {tag: 'TAG1', pickTag: {allowErrors: true}},
       ERR_MSG = `Not found tag: ${OPTS1.tag}`;
-    pickTagRturnsNull = true;
 
+    pickTagRturnsNull = true;
     let pluginStream = plugin(OPTS1);
     expect(() => { pluginStream.write(newFile('content')); }).to.throw(ERR_MSG);
     pluginStream = plugin(OPTS2);
@@ -405,58 +422,58 @@ describe('passed/returned value', () => {
     });
   });
 
-  it('should return value from pickTag with allowErrors even if it is null', done => {
-    const OPTS_PICKTAG = {pickTag: {allowErrors: true}, tag: 'TAG1'},
-      R_PICKTAG = 'content<pickTag>';
-    pickTagRturnsNull = false;
+  it('should return a null if pickTag returned a null with allowErrors', done => {
+    const OPTS_PICKTAG = {pickTag: {allowErrors: true}, tag: 'TAG1'};
 
+    pickTagRturnsNull = false;
     resetAll();
     let pluginStream = plugin(OPTS_PICKTAG);
     pluginStream.write(newFile('content'));
     pluginStream.once('data', file => {
-      expect(file.contents.toString()).to.equal(R_PICKTAG);
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, 'content')).to.be.true;
+      expect(file.contents.toString()).to.equal('content<pickTag>');
 
       // Returns null
       pickTagRturnsNull = true;
-
       resetAll();
       pluginStream = plugin(OPTS_PICKTAG);
       pluginStream.write(newFile('content'));
       pluginStream.once('data', file => {
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_PICKTAG.tag, 'content')).to.be.true;
         expect(file.isNull()).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
 
         done();
       });
     });
   });
 
-  it('should not call other methods when pickTag returned null', done => {
-    const OPTS_METHODS_ARR =
-      {pickTag: {allowErrors: true}, replaceTag: {}, removeTag: {}, tag: 'TAG1'};
-    pickTagRturnsNull = false;
+  it('should not call other methods when pickTag returned a null', done => {
+    const OPTS_ALL = {pickTag: {allowErrors: true}, replaceTag: {}, removeTag: {}, tag: 'TAG1'};
 
+    pickTagRturnsNull = false;
     resetAll();
-    let pluginStream = plugin(OPTS_METHODS_ARR);
+    let pluginStream = plugin(OPTS_ALL);
     pluginStream.write(newFile('content'));
     pluginStream.once('data', file => {
-      expect(file.contents.toString()).to.equal(R_METHODS);
-      expect(preProc.replaceTag.calledOnce).to.be.true;
-      expect(preProc.removeTag.calledOnce).to.be.true;
-      expect(preProc.pickTag.calledOnce).to.be.true;
+      expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, 'content')).to.be.true;
+      expect(preProc.replaceTag
+        .calledOnceWithExactly(OPTS_ALL.tag, void 0, 'content<pickTag>', null, void 0))
+        .to.be.true;
+      expect(preProc.removeTag
+        .calledOnceWithExactly(OPTS_ALL.tag, 'content<pickTag><replaceTag>', null, void 0))
+        .to.be.true;
+      expect(file.contents.toString()).to.equal(RES_ALL);
 
       // Returns null
       pickTagRturnsNull = true;
-
       resetAll();
-      pluginStream = plugin(OPTS_METHODS_ARR);
+      pluginStream = plugin(OPTS_ALL);
       pluginStream.write(newFile('content'));
       pluginStream.once('data', file => {
         expect(file.isNull()).to.be.true;
+        expect(preProc.pickTag.calledOnceWithExactly(OPTS_ALL.tag, 'content')).to.be.true;
         expect(preProc.replaceTag.notCalled).to.be.true;
         expect(preProc.removeTag.notCalled).to.be.true;
-        expect(preProc.pickTag.calledOnce).to.be.true;
 
         done();
       });
