@@ -1,6 +1,6 @@
 # gulp-pre-proc
 
-[![npm](https://img.shields.io/npm/v/gulp-pre-proc.svg)](https://www.npmjs.com/package/gulp-pre-proc) [![GitHub issues](https://img.shields.io/github/issues/anseki/gulp-pre-proc.svg)](https://github.com/anseki/gulp-pre-proc/issues) [![David](https://img.shields.io/david/anseki/gulp-pre-proc.svg)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
+[![npm](https://img.shields.io/npm/v/gulp-pre-proc.svg)](https://www.npmjs.com/package/gulp-pre-proc) [![GitHub issues](https://img.shields.io/github/issues/anseki/gulp-pre-proc.svg)](https://github.com/anseki/gulp-pre-proc/issues) [![David](https://img.shields.io/david/anseki/gulp-pre-proc.svg)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 This [gulp](http://gulpjs.com/) plugin is wrapper of [preProc](https://github.com/anseki/pre-proc).
 
